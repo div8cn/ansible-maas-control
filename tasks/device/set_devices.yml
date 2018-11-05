@@ -8,9 +8,9 @@
 - name: MAAS | DEVICES | set some facts (1)
   set_fact:
     #ip: "{{ hostvars[item]['ipaddress'] }}"
-    primary_mac_address: "{{ hostvars[item]['interfaces'][0]['mac_address'] }}"
+    primary_mac_address: "{{ hostvars[item]['network_interfaces'][0]['mac_address'] }}"
     domain: "{{ hostvars[item]['domain'] | default(default_domain)}}"
-    interfaces: "{{ hostvars[item]['interfaces'] }}"
+    interfaces: "{{ hostvars[item]['network_interfaces'] }}"
   tags:
     - devices
 
