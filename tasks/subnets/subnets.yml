@@ -1,0 +1,17 @@
+---
+- name: MAAS | read current fabrics
+  command: maas {{ maas_user }} fabrics read
+  changed_when: false
+  register: maas_fabrics
+
+- name: MAAS | create fabric when template
+  debug:
+    msg: MAAS fabric {{ item.name }}
+  when: item.name not in maas_fabrics.stdout | from_json | selectattr ("name","equalto", item.name) | map(attribute="name") | list
+  with_items: "{{fabrics}}"
+
+
+- name: MAAS | configure vlans
+  include: subnets/vlans.yml
+  with_dict: "{{ vlans }}"
+  when: item.value.maas_managed | default(true)

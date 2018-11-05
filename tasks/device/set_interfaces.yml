@@ -1,0 +1,12 @@
+---
+- name: MAAS | DEVICES | set some interface facts (1)
+  set_fact:
+    mac_address: "{{ item.mac_address }}"
+  tags:
+    - devices
+
+- name: MAAS | DEVICES | make sure interface with mac {{ mac_address }} exists
+  command: maas {{ maas_user }} interfaces create-physical {{ device_system_id }}  mac_address={{ mac_address }}
+  when: device_interfaces.stdout | from_json | selectattr('mac_address','equalto',mac_address) | list | length == 0
+  tags:
+    - devices

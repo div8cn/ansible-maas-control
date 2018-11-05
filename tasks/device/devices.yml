@@ -1,0 +1,31 @@
+---
+#- name: MAAS | get current devices
+#  command: maas {{ maas_user }} devices read
+#  changed_when: false
+#  register: maas_devices_command
+#  tags:
+#    - devices
+#
+- name: MAAS | get current subnets
+  command: maas {{ maas_user }} subnets read
+  changed_when: false
+  register: maas_subnets_command
+  tags:
+    - devices
+
+- name: MAAS | set fact of devices
+  set_fact:
+    #    maas_devices: "{{ maas_devices_command.stdout | from_json }}"
+    maas_subnets: "{{ maas_subnets_command.stdout | from_json }}"
+  tags:
+    - devices
+  # kan naar (configurable all) (gebruik evt ansible_limit)
+- name: print all hostnames in all
+  include: device/set_devices.yml
+  #    msg: out {{item}} {{ hostvars[item]['ip_address'] }}
+  with_items: "{{ groups['clients'] }}"
+  #  when: interfaces is defined and interfaces | length > 0
+  tags:
+    - devices
+
+

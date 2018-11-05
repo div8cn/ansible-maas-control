@@ -1,0 +1,134 @@
+---
+# ### dns record toevoegen van ander device
+#
+#maas admin devices create hostname=ubuntu-001 domain=vdl.maas mac_addresses=dc:fe:07:e0:ec:f1
+#maas admin interfaces read geqssr
+#maas admin interface link-subnet  geqssr 77 mode=STATIC subnet=1 ip_address=172.16.44.33
+#
+- name: MAAS | DEVICES | set some facts (1)
+  set_fact:
+    #ip: "{{ hostvars[item]['ipaddress'] }}"
+    primary_mac_address: "{{ hostvars[item]['interfaces'][0]['mac_address'] }}"
+    domain: "{{ hostvars[item]['domain'] | default(default_domain)}}"
+    interfaces: "{{ hostvars[item]['interfaces'] }}"
+  tags:
+    - devices
+
+- name: MAAS | DEVICES | set some facts (2)
+  set_fact:
+    #ip: "{{ hostvars[item]['ipaddress'] }}"
+    secondary_interfaces: "{{ interfaces | rejectattr('mac_address','equalto',primary_mac_address) | list  }}"
+  tags:
+    - devices
+
+
+#- name: MAAS | DEVICES | set some facts (1)
+#  set_fact:
+#    ip: "{{ hostvars[item]['ipaddress'] }}"
+#    mac_address: "{{ hostvars[item]['mac_address'] }}"
+#    domain: "{{ hostvars[item]['domain'] | default(default_domain)}}"
+#  tags:
+#    - devices
+#
+#- name: MAAS | DEVICES | set some facts (2)
+#  set_fact:
+#    subnet_id: >
+#      {% set matched = false %}
+#      {% for subnet in maas_subnets if matched == false %}
+#      {%   if ip | ipaddr(subnet.cidr) %}
+#      {{subnet.id }}
+#      {%      set matched = true %}
+#      {%   endif %}
+#      {% endfor %}
+#  tags:
+#    - devices
+#
+- name: MAAS | DEVICES | check if device exists
+  command: maas {{ maas_user }} devices read mac_address={{primary_mac_address}}
+  changed_when: false
+  register: maas_devices_read
+  tags:
+    - devices
+
+- name: MAAS | DEVICES | get system_id (try 1)
+  set_fact:
+    device_system_id: "{{ (maas_devices_read.stdout | from_json )[0].system_id }}"
+    device_ip_addresses: "{{ (maas_devices_read.stdout | from_json)[0].ip_addresses }}"
+  when: maas_devices_read.stdout | from_json | length > 0
+  tags:
+    - devices
+
+- name: MAAS | DEVICES | make sure device exists
+  command: maas {{ maas_user }} devices create hostname={{item}} domain={{domain}} mac_addresses={{primary_mac_address}}
+  when: maas_devices_read.stdout | from_json | length == 0
+  register: maas_devices_create
+  tags:
+    - devices
+
+- name: MAAS | DEVICES | get system_id (try 2)
+  set_fact:
+    device_system_id: "{{ (maas_devices_create.stdout | from_json ).system_id }}"
+    device_ip_addresses: "{{ (maas_devices_create.stdout | from_json).ip_addresses }}"
+  when: maas_devices_create.changed
+  tags:
+    - devices
+
+
+# maas admin interface link-subnet  geqssr 77 mode=STATIC subnet=1 ip_address=172.16.44.33
+
+- name: MAAS | DEVICES | get interface ids
+  command: maas {{ maas_user }} interfaces read {{ device_system_id }}
+  changed_when: false
+  register: device_interfaces
+  tags:
+    - devices
+
+
+
+# vanaf hier weer loop
+
+- name: MAAS | DEVICES | make sure all secondary interfaces exist
+  include: device/set_interfaces.yml
+  with_items: "{{ secondary_interfaces }}"
+  when: secondary_interfaces is defined
+  tags:
+    - devices
+
+- name: MAAS | DEVICES | get interface ids - update
+  command: maas {{ maas_user }} interfaces read {{ device_system_id }}
+  changed_when: false
+  register: device_interfaces
+  tags:
+    - devices
+
+
+- name: MAAS | DEVICES | make sure all ip addresses are set
+  include: device/set_ips.yml
+  with_items: "{{ interfaces }}"
+  when: interfaces is defined
+  tags:
+    - devices
+
+
+      #- name: MAAS | DEVICES | get correct interface id
+      #  set_fact:
+      #    device_interface_id: "{{ (device_interfaces.stdout | from_json | selectattr('mac_address','equalto',mac_address) | map(attribute='id') | list)[0] }}"
+      #    #    device_ip_address: "{{ device_interfaces.stdout | from_json | map(attribute='links') | list }}"
+      #  tags:
+      #    - devices
+      #
+      #
+      #  # assumes really hard that a device has only 1 ip.
+      #- name: MAAS | DEVICES | unlink subnet if ip is wrong
+      #  command: maas {{ maas_user }} interface disconnect {{ device_system_id }} {{ device_interface_id }}
+      #  when: ip not in device_ip_addresses and device_ip_addresses | length > 0
+      #  register: device_unlinked
+      #  tags:
+      #    - devices
+      #
+      #- name: MAAS | DEVICES | link subnet to device and set ip
+      #  command: maas {{ maas_user }} interface link-subnet {{ device_system_id }} {{ device_interface_id }} subnet={{subnet_id|trim}} mode=STATIC ip_address={{ip}}
+      #  when: device_ip_addresses | length == 0 or device_unlinked.changed
+      #  tags:
+      #    - devices
+      #

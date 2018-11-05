@@ -1,0 +1,19 @@
+---
+- name: MAAS | DOMAINS | get current domains
+  command: >-
+    maas {{ maas_user }} 
+    domains read
+  changed_when: false
+  register: maas_domains_read
+  tags:
+    - domain
+
+- name: MAAS | DOMAINS | make sure domain exists
+  command: >-
+    maas {{ maas_user }}
+    domains create name={{ item }}
+  when: maas_domains_read.stdout | from_json | selectattr('name','equalto',item) | list | length == 0
+  with_items: "{{ maas_domains }}"
+  tags:
+    - domain
+

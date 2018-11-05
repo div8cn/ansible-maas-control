@@ -1,0 +1,51 @@
+---
+# model
+# dhcp_snippets:
+#   global:
+#   - snippet: |
+#       bla;
+#       boe;
+#     name: snippetname
+#     enabled: true/false
+#   subnet:
+#   - subnet_cidr:
+#     snippet
+#     name
+#     enabled: true/false
+#   node:
+#   - node_name:
+#     snippet
+#     name
+#     enabled
+- name: MAAS | DHCP-SNIPPETS | get current snippets
+  command: maas {{ maas_user }} dhcpsnippets read
+  changed_when: false
+  register: maas_dhcpsnippets
+  tags:
+    - snippets
+
+- name: MAAS | DHCP-SNIPPETS | get subnets
+  command: maas {{ maas_user }} subnets read
+  changed_when: false
+  register: maas_snippets_subnets
+  when: dhcp_snippets.subnets | length > 0
+  tags:
+    - snippets
+
+- name: MAAS | DHCP-SNIPPETS | get nodes
+  command: maas {{ maas_user }} nodes read
+  changed_when: false
+  register: maas_snippets_nodes
+  when: dhcp_snippets.nodes | length > 0
+  tags:
+    - snippets
+
+- name: MAAS | DHCP-SNIPPETS | render global
+  include: dhcp_snippets/global.yml
+  with_items: "{{dhcp_snippets.global}}"
+  tags:
+    - snippets
+
+
+
+

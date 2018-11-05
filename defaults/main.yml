@@ -1,0 +1,36 @@
+---
+# defaults file for naturalis.maas-control
+
+maas_user: maas
+maas_url: http://172.16.44.100:5240/MAAS
+default_fabric: 'fabric-2'
+default_mtu: 1500
+default_domain: 'maas'
+default_start_ip_end: 100.1
+default_end_ip_end: 103.254
+default_dns: "8.8.8.8, 8.8.4.4"
+#maas_default_dhcp_interface: enp179s0f0
+maas_upstream_dns: "8.8.8.8, 8.8.4.4"
+maas_public_keys: []
+
+    #maas_dnsservers:
+    #  - 192.87.106.10
+    #  - 195.169.124.124
+
+# there is currently no way to add fabrics to interfaces
+fabrics:
+  - name: 'fabric-2'
+    interface: enp179s0f0
+  - name: 'fabric-3'
+    interface: enp179s0f1
+
+
+    #dhcp_snippets:
+    #  global:
+    #    - name: test
+    #      snippet: >-
+    #        "option www-server code 72 = ip-address;
+    #         option cumulus-provision-url code 239 = text;"
+    #  subnets: []
+    #  nodes: []
+    #

@@ -1,0 +1,5 @@
+---
+- name: logout maas user
+  command: maas logout {{maas_user}}
+  changed_when: false
+

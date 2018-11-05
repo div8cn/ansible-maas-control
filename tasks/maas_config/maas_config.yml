@@ -1,0 +1,13 @@
+---
+- name: MAAS | CONFIG | get current upstream dns servers
+  command: maas {{ maas_user }} maas get-config name=upstream_dns
+  changed_when: false
+  register: maas_current_upstream_dns
+  tags:
+    - config
+- name: MAAS | CONFIG set curret upstream dns servers
+  command: maas {{ maas_user }} maas set-config name=upstream_dns value={{maas_upstream_dns}}
+  when: maas_current_upstream_dns.stdout == 'null'
+  tags:
+    - config
+

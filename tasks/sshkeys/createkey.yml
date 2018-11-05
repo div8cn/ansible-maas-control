@@ -1,0 +1,9 @@
+---
+- name: MAAS | SSHKEYS | make sure sshkeys exists
+  command: maas {{ maas_user }} sshkeys create key='{{item}}'
+  #  when: not item['key'] == maas_public_key
+  when: current_sshkeys.stdout | from_json | selectattr('key','equalto', item) | list | length == 0
+  tags:
+    - sshkeys
+  #  with_items: "{{ current_sshkeys.stdout | from_json }}"
+

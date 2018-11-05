@@ -1,0 +1,51 @@
+---
+# tasks file for naturalis.maas-control
+
+- name: login to maas
+  include: api/login.yml
+  when: inventory_hostname == "maas-master"
+  tags:
+    - login
+
+- name: set sshkeys
+  include: sshkeys/sshkeys.yml
+  when: inventory_hostname == "maas-master"
+  tags:
+    - sshkeys
+
+- name: set config
+  include: maas_config/maas_config.yml
+  when: inventory_hostname == "maas-master"
+  tags:
+    - config
+
+- name: set domains
+  include: domains/domains.yml
+  when: inventory_hostname == "maas-master"
+  tags:
+    - domains
+
+- name: set vlans and subnets
+  include: subnets/subnets.yml
+  when: inventory_hostname == "maas-master"
+  tags:
+    - subnets
+
+- name: set devices
+  include: device/devices.yml
+  when: inventory_hostname == "maas-master"
+  tags:
+    - devices
+
+      # it seems maas api on this part is a bit broken.
+      #- name: set dhcpsnippets
+      #  include: dhcp_snippets/dhcp_snippets.yml
+      #  when: inventory_hostname == "maas-master"
+      #  tags:
+      #    - snippets
+
+- name: logout to maas
+  include: api/logout.yml
+  when: inventory_hostname == "maas-master"
+  tags:
+    - login

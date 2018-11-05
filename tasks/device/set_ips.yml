@@ -1,0 +1,42 @@
+---
+- name: MAAS | DEVICES | set some facts (1)
+  set_fact:
+    ip: "{{ item.ipv4_address }}"
+    mac_address: "{{ item.mac_address }}"
+  tags:
+    - devices
+
+- name: MAAS | DEVICES | set some facts (2)
+  set_fact:
+    subnet_id: >
+      {% set matched = false %}
+      {% for subnet in maas_subnets if matched == false %}
+      {%   if ip | ipaddr(subnet.cidr) %}
+      {{subnet.id }}
+      {%      set matched = true %}
+      {%   endif %}
+      {% endfor %}
+  tags:
+    - devices
+
+- name: MAAS | DEVICES | get correct interface id
+  set_fact:
+    device_interface_id: "{{ (device_interfaces.stdout | from_json | selectattr('mac_address','equalto',mac_address) | map(attribute='id') | list)[0] }}"
+  tags:
+    - devices
+
+  # a bit of messed up logic here, disconnecting the interface if the ip is not found is a bit
+  # hard.
+- name: MAAS | DEVICES | unlink subnet if ip is wrong
+  command: maas {{ maas_user }} interface disconnect {{ device_system_id }} {{ device_interface_id }}
+  when: ip not in device_ip_addresses
+  register: device_unlinked
+  tags:
+    - devices
+
+- name: MAAS | DEVICES | link subnet to device and set ip
+  command: maas {{ maas_user }} interface link-subnet {{ device_system_id }} {{ device_interface_id }} subnet={{subnet_id|trim}} mode=STATIC ip_address={{ip}}
+  when: ip not in device_ip_addresses or device_unlinked.changed
+  tags:
+    - devices
+
