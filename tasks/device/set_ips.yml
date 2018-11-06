@@ -1,7 +1,7 @@
 ---
 - name: MAAS | DEVICES | set some facts (1)
   set_fact:
-    ip: "{{ item.ipv4_address }}"
+    ip: "{{ item.ip_address }}"
     mac_address: "{{ item.mac_address }}"
   tags:
     - devices
