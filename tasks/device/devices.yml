@@ -2,17 +2,17 @@
 - name: MAAS | DEVICES | get list of machines which have correct maas type
   set_fact:
     maas_type_devices: >-
-     {%- set a = [] %}
+     {%- set device_list = [] %}
      {%- for host, value in hostvars.items() %}
      {%-   if value.maas_type is defined %}
      {%-     if value.maas_type == 'device' %}
-     {{- a.append(host) -}}
+     {{- device_list.append(host) -}}
      {%-     endif %}
      {%-   elif default_maas_type == 'device' %}
-     {{- a.append(host) -}}
+     {{- device_list.append(host) -}}
      {%-   endif %}
      {%- endfor %}
-     {{- a | intersect(groups[maas_managed_inventory_group|quote]) -}}
+     {{- device_list | intersect(groups[maas_managed_inventory_group|quote]) -}}
   tags:
     - devices
 
