@@ -1,7 +1,7 @@
 Maas-Control
 =========
 
-Do stuf with Maas
+Do stuf with Maas (https://maas.io/). Ubuntu Metal as a Service.
 
 Requirements
 ------------
