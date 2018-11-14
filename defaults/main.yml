@@ -1,36 +1,69 @@
 ---
-# defaults file for naturalis.maas-control
-
+# maas user
 maas_user: maas
+# maas api url
 maas_url: http://172.16.44.100:5240/MAAS
-default_fabric: 'fabric-2'
-default_mtu: 1500
-default_domain: 'maas'
-default_start_ip_end: 100.1
-default_end_ip_end: 103.254
-default_dns: "8.8.8.8, 8.8.4.4"
-#maas_default_dhcp_interface: enp179s0f0
-maas_upstream_dns: "8.8.8.8, 8.8.4.4"
+# an array of public keys set to the maas user
 maas_public_keys: []
-
-    #maas_dnsservers:
-    #  - 192.87.106.10
-    #  - 195.169.124.124
-
-# there is currently no way to add fabrics to interfaces
+# default maas fabric to use
+default_fabric: 'fabric-2'
+# default mtu setting
+default_mtu: 1500
+# default domain devices and machines are created at
+default_domain: 'maas'
+# number of ip addresses after the start of a subnet
+default_maas_dhcp_start_offset: 25601
+# number of ip addresses in the dhcp range
+default_maas_dhcp_number_of_addresses: 765
+# default dns servers set on a subnet
+default_dns: "8.8.8.8, 8.8.4.4"
+# default upstream dns servers when maas is used as dns server
+maas_upstream_dns: "8.8.8.8, 8.8.4.4"
+# the id of the primary rack controller (used for dhcp)
+default_maas_primary_rack_controller_id: ""
+# id of the secondary rack controller (used for dhcp, leave "" if not used)
+default_maas_secondary_rack_controller_id: ""
+# default inventory group to query for devices or machines.
+# will be overridden by --limit (ansible_limit variable)
+maas_managed_inventory_group: all
+# default type if network_interfaces are defined, can be device, machine or ignore
+default_maas_type: device
+# frabrics to create (api does not yet support attachting facbrics to interfaces)
 fabrics:
   - name: 'fabric-2'
     interface: enp179s0f0
   - name: 'fabric-3'
     interface: enp179s0f1
 
+vlans: {}
+# example vlan / dhcp configs
+# vlans:
+#   220:
+#     subnet: 10.220.0.0/16 (required)
+#     mtu: 1500 (defaults to default_mtu)
+#     dhcp_start_offset: 10 (defaults to default_maas_dhcp_start_offset)
+#     dhcp_number_of_addresses: 220 (defaults to default_maas_dhcp_number_of_addresses)
+#     dhcp: false (defaults to true)
 
-    #dhcp_snippets:
-    #  global:
-    #    - name: test
-    #      snippet: >-
-    #        "option www-server code 72 = ip-address;
-    #         option cumulus-provision-url code 239 = text;"
-    #  subnets: []
-    #  nodes: []
-    #
+# to create a maas device (hostname, dns and posible ip to mac reservation)
+# set in the host_var of a device
+# maas_type: device
+# network_interfaces:
+#   - mac_address: <the mac address>
+#     ip_address: <the ip address>
+#   - mac_address: <the mac address>
+#     ip_address: <the ip address>
+
+# Machines are not yet supported
+
+# Future settings
+# dhcp snippets is currently broken in maas api
+# dhcp_snippets:
+#   global:
+#     - name: test
+#       snippet: >-
+#         "option www-server code 72 = ip-address;
+#          option cumulus-provision-url code 239 = text;"
+#   subnets: []
+#   nodes: []
+

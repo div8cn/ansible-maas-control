@@ -1,31 +1,39 @@
 ---
-#- name: MAAS | get current devices
-#  command: maas {{ maas_user }} devices read
-#  changed_when: false
-#  register: maas_devices_command
-#  tags:
-#    - devices
-#
-- name: MAAS | get current subnets
+- name: MAAS | DEVICES | get list of machines which have correct maas type
+  set_fact:
+    maas_type_devices: >-
+     {%- set a = [] %}
+     {%- for host, value in hostvars.items() %}
+     {%-   if value.maas_type is defined %}
+     {%-     if value.maas_type == 'device' %}
+     {{- a.append(host) -}}
+     {%-     endif %}
+     {%-   elif default_maas_type == 'device' %}
+     {{- a.append(host) -}}
+     {%-   endif %}
+     {%- endfor %}
+     {{- a | intersect(groups[maas_managed_inventory_group|quote]) -}}
+  tags:
+    - devices
+
+- name: MAAS | DEVICES | get current subnets
   command: maas {{ maas_user }} subnets read
   changed_when: false
   register: maas_subnets_command
+  when: maas_type_devices | length > 0
   tags:
     - devices
 
-- name: MAAS | set fact of devices
+- name: MAAS | DEVICES | set fact of devices
   set_fact:
-    #    maas_devices: "{{ maas_devices_command.stdout | from_json }}"
     maas_subnets: "{{ maas_subnets_command.stdout | from_json }}"
+  when: maas_type_devices | length > 0
   tags:
     - devices
-  # kan naar (configurable all) (gebruik evt ansible_limit)
-- name: print all hostnames in all
+
+- name: MAAS | DEVICES | create devices
   include: device/set_devices.yml
-  #    msg: out {{item}} {{ hostvars[item]['ip_address'] }}
-  with_items: "{{ groups['clients'] }}"
-  #  when: interfaces is defined and interfaces | length > 0
+  with_items: "{{ maas_type_devices }}"
+  when: maas_type_devices | length > 0
   tags:
     - devices
-
-

@@ -10,7 +10,6 @@
   when: item.name not in maas_fabrics.stdout | from_json | selectattr ("name","equalto", item.name) | map(attribute="name") | list
   with_items: "{{fabrics}}"
 
-
 - name: MAAS | configure vlans
   include: subnets/vlans.yml
   with_dict: "{{ vlans }}"

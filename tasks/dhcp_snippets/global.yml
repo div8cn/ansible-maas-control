@@ -1,19 +1,4 @@
 ---
-#- name: MAAS | DHCP-SNIPPETS | write snippet in temp file (1)
-#  tempfile:
-#    state: file
-#    suffix: temp
-#  register: tempfile
-#  tags:
-#    - snippets
-#
-#- name: MAAS | DHCP-SNIPPETS | write snippet in temp file (2)
-#  copy:
-#    content: "{{ item.snippet }}"
-#    dest: "{{ tempfile.path }}"
-#  tags:
-#    - snippets
-#
 - name: MAAS | DHCP-SNIPPETS | create global snippet {{item.name}}
   command: maas {{ maas_user }} dhcpsnippets create enabled="true" name={{item.name}} global_snippet="true" value=\"{{ item.snippet }}\"
   when: maas_dhcpsnippets.stdout | from_json | selectattr('name','equalto',item.name) | list | length == 0
