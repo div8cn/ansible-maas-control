@@ -7,6 +7,8 @@ Requirements
 ------------
 
 * Working Maas server and shell access to this server
+* All vlans should be defined on the required interfaces of your
+  rack controller(s). You cannot do this from the maas api.
 
 Limitations
 -----------
@@ -14,6 +16,9 @@ Limitations
 * Machines are not yet supported
 * Creation of seperate dns records (A, CNAME etc) is not yet supported
 * Breakdown of network and devices are not yet supported
+* Currently the maas api does not allow to connect a fabric to an interface.
+  You have to do this by hand via the web interface at the moment. Vlans in Maas are
+	defined on fabrics.
 
 Role Variables
 --------------
