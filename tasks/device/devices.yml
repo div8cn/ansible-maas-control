@@ -34,6 +34,6 @@
 - name: MAAS | DEVICES | create devices
   include: device/set_devices.yml
   with_items: "{{ maas_type_devices }}"
-  when: maas_type_devices | length > 0
+  when: maas_type_devices is defined and maas_type_devices | length > 0
   tags:
     - devices

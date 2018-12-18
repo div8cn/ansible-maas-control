@@ -46,6 +46,13 @@
   tags:
     - snippets
 
+- name: MAAS | DHCP-SNIPPETS | render subnets
+  include: dhcp_snippets/subnets.yml
+  with_items: "{{dhcp_snippets.subnets}}"
+  tags:
+    - snippets
+
+
 
 
 

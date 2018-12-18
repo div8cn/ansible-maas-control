@@ -35,6 +35,9 @@ fabrics:
   - name: 'fabric-3'
     interface: enp179s0f1
 
+default_maas_distro: "bionic"
+default_maas_cloud_init: ""
+  
 vlans: {}
 # example vlan / dhcp configs
 # vlans:
@@ -55,15 +58,20 @@ vlans: {}
 #     ip_address: <the ip address>
 
 # Machines are not yet supported
+#         option cumulus-provision-url code 239 = text;"
 
 # Future settings
-# dhcp snippets is currently broken in maas api
-# dhcp_snippets:
-#   global:
-#     - name: test
-#       snippet: >-
-#         "option www-server code 72 = ip-address;
-#          option cumulus-provision-url code 239 = text;"
-#   subnets: []
-#   nodes: []
-
+dhcp_snippets: {}
+#  global:
+#    - name: test
+#      snippet: |-
+#        option www-server code 72 = ip-address;
+#        option cumulus-provision-url code 239 = text;
+#  subnets: 
+#    - name: testb
+#      snippet: |-
+#        option default-url = "http://172.16.225.10:8888/onie-installer";
+#        option cumulus-provision-url "http://172.16.225.10:8889/ztp_oob.sh";
+#        option www-server 172.16.225.10;
+#      subnet: "10.225.0.0/16"
+#  nodes: []

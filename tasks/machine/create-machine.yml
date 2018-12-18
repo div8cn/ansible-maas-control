@@ -1,0 +1,175 @@
+---
+- name: MAAS | MACHINES | set some facts (1)
+  set_fact:
+    primary_mac_address: "{{ hostvars[item]['network_interfaces'][0]['mac_address'] }}"
+    domain: "{{ hostvars[item]['domain'] | default(default_domain)}}"
+    interfaces: "{{ hostvars[item]['network_interfaces'] | default([]) }}"
+    distro: "{{ hostvars[item]['machine_distro'] | default(default_machine_distro) }}"
+    user_data: "{{ hostvars[item]['machine_user_data'] | default(default_machine_user_data) }}"
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | set some facts (2)
+  set_fact:
+    secondary_interfaces: "{{ interfaces | rejectattr('mac_address','equalto',primary_mac_address) | list  }}"
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | set temp file for faster wol
+  tempfile:
+    state: file
+  register: temp_wol_file
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | fill tempfile for faster wol
+  copy:
+    dest: "{{temp_wol_file.path}}"
+    mode: 0700
+    content: |-
+      #!/bin/bash
+      {% for i in ansible_interfaces %}
+      etherwake -i {{ i }} {{ primary_mac_address }} &
+      {% endfor %}
+
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | check if machine is registered
+  command: maas {{ maas_user }} machines is-registered mac_address={{ primary_mac_address }}
+  changed_when: false
+  register: machine_registered
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | register machine
+  command: maas {{ maas_user }} machines create hostname={{item}} domain={{domain}} mac_addresses={{primary_mac_address}} architecture=amd64 power_type=manual
+  register: machine_info
+  when: not machine_registered.stdout|bool
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | set machine fact (1)
+  set_fact:
+    maas_machine_info: "{{ machine_info.stdout|from_json }}"
+    maas_machine_id: "{{ (machine_info.stdout|from_json).system_id }}"
+    maas_machine_state: "{{ (machine_info.stdout|from_json).commissioning_status_name }}"
+    maas_machine_ip_addresses: "{{ (machine_info.stdout|from_json).ip_addresses }}"
+  when: not machine_registered.stdout|bool
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | get machine info
+  command: maas {{ maas_user }} machines read mac_address={{ primary_mac_address }}
+  changed_when: false
+  register: machine_info
+  when: machine_registered.stdout|bool
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | set machine fact (2)
+  set_fact:
+    maas_machine_info: "{{ (machine_info.stdout|from_json)[0] }}"
+    maas_machine_id: "{{ (machine_info.stdout|from_json)[0].system_id }}"
+    maas_machine_state: "{{ (machine_info.stdout|from_json)[0].commissioning_status_name }}"
+    maas_machine_ip_addresses: "{{ (machine_info.stdout|from_json)[0].ip_addresses }}"
+  when: machine_registered.stdout|bool
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | restart commissioning
+  command: maas {{ maas_user }} machine commission {{ maas_machine_id }}
+  register: recommissioned
+  when: maas_machine_state == "Unknown" or maas_machine_state == "Failed"
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | start machine for commissioning
+  include: power_types/wol.yml
+  when: maas_machine_state == "Pending" or recommissioned.changed
+
+- name: MAAS | MACHINES | get interface ids
+  command: maas {{ maas_user }} interfaces read {{ maas_machine_id }}
+  changed_when: false
+  register: machine_interfaces
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | make sure all secondary interfaces exist
+  include: machine/set_interfaces.yml
+  with_items: "{{ secondary_interfaces }}"
+  when: secondary_interfaces is defined
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | get interface ids - update
+  command: maas {{ maas_user }} interfaces read {{ maas_machine_id }}
+  changed_when: false
+  register: machine_interfaces
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | get machine info for interfaces
+  command: maas {{ maas_user }} machines read mac_address={{ primary_mac_address }}
+  changed_when: false
+  register: machine_info_for_interfaces
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | set fact for ip addresses
+  set_fact:
+    machine_ip_addresses: "{{ (machine_info_for_interfaces.stdout | from_json)[0].ip_addresses }}"
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | make sure all ip addresses are set
+  include: machine/set_ips.yml
+  with_items: "{{ interfaces }}"
+  when: interfaces is defined
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | get status name (2)
+  command: maas {{ maas_user }} machines read mac_address={{ primary_mac_address }}
+  changed_when: false
+  register: machine_status_name
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | allocate machine {{item}}
+  command: maas {{ maas_user }} machines allocate system_id={{maas_machine_id}}
+  when:  (machine_status_name.stdout | from_json)[0].status_name == "Ready"
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | get status name (3)
+  command: maas {{ maas_user }} machines read mac_address={{ primary_mac_address }}
+  changed_when: false
+  register: machine_status_name
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | deploy machine {{item}}
+  command: >-
+    maas {{ maas_user }} machine
+      deploy {{ maas_machine_id }}
+      distro_series={{distro}}
+      user_data={{user_data|b64encode}}
+  when:  (machine_status_name.stdout | from_json)[0].status_name == "Allocated"
+  register: maas_deployed
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | WOL from all interfaces to machine to deploy machine
+  command: "/bin/bash {{temp_wol_file.path}}"
+  when: maas_deployed.changed
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | cleanup temp wol file
+  file:
+    path: "{{temp_wol_file.path}}"
+    state: absent
+  tags:
+    - machines
+

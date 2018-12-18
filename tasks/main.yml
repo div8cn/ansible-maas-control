@@ -35,12 +35,19 @@
   tags:
     - devices
 
+- name: set machines
+  include: machine/machines.yml
+  #when: inventory_hostname == "maas-master"
+  tags:
+    - machines
+
+
       # it seems maas api on this part is a bit broken.
-      #- name: set dhcpsnippets
-      #  include: dhcp_snippets/dhcp_snippets.yml
-      #  when: inventory_hostname == "maas-master"
-      #  tags:
-      #    - snippets
+- name: set dhcpsnippets
+  include: dhcp_snippets/dhcp_snippets.yml
+  when: inventory_hostname == "maas-master"
+  tags:
+    - snippets
 
 - name: logout to maas
   include: api/logout.yml

@@ -9,7 +9,7 @@
     dns_servers: "{{ item.value.dns_servers | default(default_dns)}}"
     dhcp_iprange_start_offset: "{{ item.value.dhcp_start_offset | default(default_maas_dhcp_start_offset ) }}"
     dhcp_iprange_number_of_addresses: "{{ item.value.dhcp_number_of_addresses | default(default_maas_dhcp_number_of_addresses ) }}"
-    gateway: "{{ item.value.gateway | default( item.value.subnet | ipaddr('1') | ipaddr('address')) }}"
+    gateway: "{{ item.value.gateway | default( item.value.subnet | ipaddr('10') | ipaddr('address')) }}"
     dhcp_primary_controller_id: "{{ item.value.maas_primary_rack_controller_id  | default(default_maas_primary_rack_controller_id) }}"
     dhcp_secondary_controller_id: "{{ item.value.maas_secondary_rack_controller_id  | default(default_maas_secondary_rack_controller_id) }}"
 
@@ -52,8 +52,18 @@
   set_fact:
     subnet_id: "{{ (maas_subnet.stdout | from_json | selectattr('cidr','equalto', subnet)|map(attribute='id')|list)[0] | default('-1') }}"
 
+  # dit gaat nu fout omdat vlan al bestaat, moet check of info klopt.
+  # eerst subnet/vlan slopen
+  # fix ook peer van packages
 - name: MAAS | VLANS | make sure subnet exists
-  command: maas {{ maas_user }} subnets create cidr="{{subnet}}" vlan={{vlan_id}} dns_servers={{dns_servers}} gateway_ip={{gateway}} fabric={{fabric_id}}
+  command: >-
+    maas {{ maas_user }}
+      subnets create
+        cidr="{{subnet}}"
+        vlan={{vlan_id}}
+        dns_servers={{dns_servers}}
+        gateway_ip={{gateway}}
+        fabric={{fabric_id}}
   when: subnet_id|int == -1
   register: maas_subnet_created
 
@@ -76,7 +86,7 @@
       maas {{ maas_user }} ipranges create
       type=dynamic
       start_ip={{ dhcp_iprange_start }}
-      end_ip={{ dhcp_iprange_start }}
+      end_ip={{ dhcp_iprange_end }}
       subnet={{subnet_id}} comment={{vlan}}
   when: iprange_id|int == -1 and dhcp
   register: maas_iprange_created
@@ -119,7 +129,7 @@
       end_ip={{ dhcp_iprange_end }}
       subnet={{subnet_id}} comment={{vlan}}
   when: >
-    dhcp and ( maas_dhcp_start_changed or maas_dhcp_start_changed )
+    dhcp and ( maas_dhcp_start_changed or maas_dhcp_end_changed )
 
 - name: MAAS | VLANS | register dhcp status
   command: maas {{ maas_user }} vlan read {{ fabric }} {{ vlan }}
@@ -135,7 +145,7 @@
   when: >
     not (maas_vlan_info.stdout | from_json).dhcp_on | quote | bool 
     and dhcp
-    and dhcp_secondary_controller_id == true
+    and dhcp_secondary_controller_id != false
 
 - name: MAAS | VLANS | make sure dhcp is enabled (single dhcp server)
   command: >

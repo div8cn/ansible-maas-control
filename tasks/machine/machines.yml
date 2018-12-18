@@ -1,0 +1,39 @@
+---
+- name: MAAS | machineS | get list of machines which have correct maas type
+  set_fact:
+    maas_type_machines: >-
+     {%- set machine_list = [] %}
+     {%- for host, value in hostvars.items() %}
+     {%-   if value.maas_type is defined %}
+     {%-     if value.maas_type == 'machine' %}
+     {{- machine_list.append(host) -}}
+     {%-     endif %}
+     {%-   elif default_maas_type == 'machine' %}
+     {{- machine_list.append(host) -}}
+     {%-   endif %}
+     {%- endfor %}
+     {{- machine_list | intersect(groups[maas_managed_inventory_group|quote]) -}}
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | get current subnets
+  command: maas {{ maas_user }} subnets read
+  changed_when: false
+  register: maas_subnets_command
+  when: maas_type_machines | length > 0
+  tags:
+    - machines
+
+- name: MAAS | machineS | set fact of machines
+  set_fact:
+    maas_subnets: "{{ maas_subnets_command.stdout | from_json }}"
+  when: maas_type_machines | length > 0
+  tags:
+    - machines
+
+- name: MAAS | machineS | create machines
+  include: machine/create-machine.yml
+  with_items: "{{ maas_type_machines }}"
+  when: maas_type_machines is defined and maas_type_machines | length > 0
+  tags:
+    - machines

@@ -1,0 +1,55 @@
+---
+  ### HACKED!!!! runs on all interfaces on maas-master
+- name: MAAS | MACHINES | WOL from all interfaces to machine
+  command: "{{ temp_wol_file.path}}"
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | wait until machine has ip
+  wait_for:
+    timeout: "{{machine_pxedhcp_timeout|default(30)}}"
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | reread system info
+  command: maas {{ maas_user }} machines read mac_address={{ primary_mac_address }}
+  changed_when: false
+  register: machine_get_ip
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | get ip address pxe
+  set_fact:
+    pxe_ip: "{{ (machine_get_ip.stdout|from_json)[0].ip_addresses[0] }}"
+  tags:
+    - mahcines
+
+
+- name: MAAS | MACHINES | wait until machine is up with SSH on {{pxe_ip}}
+  wait_for:
+    port: 22
+    delay: 5
+    sleep: 2
+    host: "{{pxe_ip}}"
+    state: started
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | wait until machine is commissioned (off) with SSH on {{pxe_ip}}
+  wait_for:
+    port: 22
+    delay: 5
+    sleep: 2
+    host: "{{pxe_ip}}"
+    state: stopped
+    timeout: "{{ machine_commissioning_timeout | default(600) }}"
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | fixed delay after ssh is down
+  wait_for:
+    timeout: "{{machine_poweroff_timeout|default(20)}}"
+  tags:
+    - machines
+
+

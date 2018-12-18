@@ -1,0 +1,42 @@
+---
+- name: MAAS | MACHINES | set some facts (1)
+  set_fact:
+    ip: "{{ item.ip_address }}"
+    mac_address: "{{ item.mac_address }}"
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | set some facts (2)
+  set_fact:
+    subnet_id: >
+      {% set matched = false %}
+      {% for subnet in maas_subnets if matched == false %}
+      {%   if ip | ipaddr(subnet.cidr) %}
+      {{subnet.id }}
+      {%      set matched = true %}
+      {%   endif %}
+      {% endfor %}
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | get correct interface id
+  set_fact:
+    machine_interface_id: "{{ (machine_interfaces.stdout | from_json | selectattr('mac_address','equalto',mac_address) | map(attribute='id') | list)[0] }}"
+  tags:
+    - machines
+
+  # a bit of messed up logic here, disconnecting the interface if the ip is not found is a bit
+  # hard.
+- name: MAAS | MACHINES | unlink subnet if ip is wrong
+  command: maas {{ maas_user }} interface disconnect {{ maas_machine_id }} {{ machine_interface_id }}
+  when: ip not in machine_ip_addresses
+  register: machine_unlinked
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | link subnet to machine and set ip
+  command: maas {{ maas_user }} interface link-subnet {{ maas_machine_id }} {{ machine_interface_id }} subnet={{subnet_id|trim}} mode=STATIC ip_address={{ip}}
+  when: ip not in machine_ip_addresses or machine_unlinked.changed
+  tags:
+    - machines
+
