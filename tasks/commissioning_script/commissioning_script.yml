@@ -1,0 +1,23 @@
+---
+
+- name: MAAS | COMMISSIONING SCRIPTS | make scripts directory
+  file:
+    state: directory
+    path: /etc/maas/commissioning_scripts
+  tags:
+    - commissioning_script
+
+- name: MAAS | COMMISSIONING SCRIPTS | write script to disk in /etc/maas/commissioning_scripts
+  copy:
+    dest: /etc/maas/commissioning_scripts/{{ item.name }}
+    content: "{{item.script}}"
+  tags:
+    - commissioning_script
+
+- name: MAAS | COMMISSIONING SCRIPTS | uploading script 
+  command: maas {{ maas_user }} commissioning-scripts create name={{ item.name }} content@=/etc/maas/commissioning_scripts/{{ item.name }}
+  when: item.name not in maas_commissioning_scripts.stdout
+  tags:
+    - commissioning_script
+
+

@@ -1,0 +1,19 @@
+---
+
+- name: MAAS | COMMISSIONING SCRIPTS | read current scripts
+  command: maas {{ maas_user }} commissioning-scripts read
+  changed_when: false
+  register: maas_commissioning_scripts
+  tags:
+    - commissioning_script
+
+- debug:
+    var: maas_commissioning_scripts.stdout
+  tags:
+    - commissioning_script
+
+- name: MAAS | COMMISSIONING SCRIPTS | create scripts
+  include: commissioning_script/commissioning_script.yml
+  with_items: "{{ commissioning_scripts | default({}) }}"
+  tags:
+    - commissioning_script

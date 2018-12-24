@@ -15,23 +15,28 @@
   tags:
     - machines
 
-- name: MAAS | MACHINES | set temp file for faster wol
-  tempfile:
-    state: file
-  register: temp_wol_file
+- name: MAAS | MACHINES | create wol directory
+  file:
+    state: directory
+    path: /etc/maas/wol
   tags:
     - machines
 
-- name: MAAS | MACHINES | fill tempfile for faster wol
+- name: MAAS | MACHINES | make sure etherwake is installed
+  apt:
+    name: etherwake
+  tags:
+    - machines
+
+- name: MAAS | MACHINES | fill wake on lan script
   copy:
-    dest: "{{temp_wol_file.path}}"
+    dest: /etc/maas/wol/{{item}}.{{domain}}.sh
     mode: 0700
     content: |-
       #!/bin/bash
       {% for i in ansible_interfaces %}
       etherwake -i {{ i }} {{ primary_mac_address }} &
       {% endfor %}
-
   tags:
     - machines
 
@@ -161,15 +166,15 @@
     - machines
 
 - name: MAAS | MACHINES | WOL from all interfaces to machine to deploy machine
-  command: "/bin/bash {{temp_wol_file.path}}"
+  command: /etc/maas/wol/{{item}}.{{domain}}.sh
   when: maas_deployed.changed
   tags:
     - machines
 
-- name: MAAS | MACHINES | cleanup temp wol file
-  file:
-    path: "{{temp_wol_file.path}}"
-    state: absent
-  tags:
-    - machines
+      #- name: MAAS | MACHINES | cleanup temp wol file
+      #  file:
+      #    path: "{{temp_wol_file.path}}"
+      #    state: absent
+      #  tags:
+      #    - machines
 

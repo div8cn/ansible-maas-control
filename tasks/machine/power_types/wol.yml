@@ -1,7 +1,7 @@
 ---
   ### HACKED!!!! runs on all interfaces on maas-master
 - name: MAAS | MACHINES | WOL from all interfaces to machine
-  command: "{{ temp_wol_file.path}}"
+  command: /etc/maas/wol/{{item}}.{{domain}}.sh
   tags:
     - machines
 

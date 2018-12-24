@@ -60,6 +60,12 @@ vlans: {}
 # Machines are not yet supported
 #         option cumulus-provision-url code 239 = text;"
 
+commissioning_scripts: {}
+# - name: test
+#   script: |
+#     #!/bin/bash
+#     touch /hello
+
 # Future settings
 dhcp_snippets: {}
 #  global:
