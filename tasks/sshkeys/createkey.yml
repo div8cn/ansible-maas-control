@@ -1,5 +1,5 @@
 ---
-- name: MAAS | SSHKEYS | make sure sshkeys exists
+- name: Add SSH key to MAAS
   command: maas {{ maas_user }} sshkeys create key='{{item}}'
   when: current_sshkeys.stdout | from_json | selectattr('key','equalto', item) | list | length == 0
   tags:

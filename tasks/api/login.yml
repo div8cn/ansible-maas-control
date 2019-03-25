@@ -1,8 +1,9 @@
 ---
-- name: get api-key
+- name: Get API key
   command: maas-region apikey --username={{maas_user}}
   changed_when: false
   register: maas_apikey
-- name: login
+
+- name: Login to MAAS
   command: "maas login {{maas_user}} {{maas_url}} {{maas_apikey.stdout}}"
   changed_when: false

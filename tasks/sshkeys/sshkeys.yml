@@ -1,12 +1,12 @@
 ---
-- name: MAAS | SSHKEYS | check if ssh-keys are available
+- name: Check if SSH keys are available
   command: maas {{maas_user}} sshkeys read
   changed_when: false
   register: current_sshkeys
   tags:
     - sshkeys
 
-- name: MAAS | SSHKEYS | going over keys
+- name: Loop over all SSH keys
   include: sshkeys/createkey.yml
   with_items: "{{ maas_public_keys }}"
   tags:
