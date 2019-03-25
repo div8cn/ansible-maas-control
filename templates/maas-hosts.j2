@@ -1,0 +1,3 @@
+[maas]
+maas-master     ansible_connection=local      ansible_user=maasbackup
+maas-slave      ansible_connection=ssh        ansible_user=maasbackup    ansible_host={{ maas_slave }}

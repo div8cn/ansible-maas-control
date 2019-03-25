@@ -1,0 +1,90 @@
+---
+- hosts: all
+  gather_facts: true
+  tasks:
+  - name: Make sure backup directory exists on maas-master
+    file:
+      path: '{{ item }}'
+      state: directory
+      owner: postgres
+      group: adm
+      mode: 0770
+    when: '"maas-master" in inventory_hostname'
+    with_items:
+      - /backup
+      - /backup/maas-master
+      - /backup/maas-master/etc
+      - /backup/maas-master/var
+      - /backup/maas-master/var/lib
+      - /backup/maas-slave
+      - /backup/maas-slave/etc
+      - /backup/maas-slave/var
+      - /backup/maas-slave/var/lib
+
+  - name: Make sure MAAS services are started
+    systemd:
+      name: '{{ item }}'
+      state: started
+    when: "'maas-slave' in inventory_hostname"
+    with_items:
+      - maas-regiond
+      - maas-rackd
+      - maas-dhcpd
+
+  - name: Stop MAAS services on maas-master
+    systemd:
+      name: '{{ item }}'
+      state: stopped
+    when: "'maas-master' in inventory_hostname"
+    with_items:
+      - maas-dhcpd
+      - maas-rackd
+      - maas-regiond
+
+  - name: Create database dump on maas-master
+    shell: pg_dumpall -c > /backup/dump.sql
+    become: yes
+    become_user: postgres
+    when: '"maas-master" in inventory_hostname'
+    tags:
+      - dump
+
+  - name: Make sure MAAS services are started
+    systemd:
+      name: '{{ item }}'
+      state: started
+    with_items:
+      - maas-regiond
+      - maas-rackd
+      - maas-dhcpd
+
+  - name: Compress SQL dump
+    archive:
+      path: /backup/dump.sql
+      dest: /backup/dump.sql.tgz
+      remove: True
+    when: '"maas-master" in inventory_hostname'
+    tags:
+      - dump
+
+  - name: Copy config files on maas-master to backup folder
+    synchronize:
+      src: '{{ item }}/maas'
+      dest: '/backup/{{ inventory_hostname }}{{ item }}'
+      links: yes
+    delegate_to: 'maas-master'
+    when: '"maas-master" in inventory_hostname'
+    with_items:
+      - /etc
+      - /var/lib
+    tags:
+      - backup_config
+
+  - name: Copy config files on maas-slave to maas-master
+    shell: 'rsync -avh -e "ssh -i /home/maasbackup/.ssh/id_rsa" {{ item }}/maas/* maasbackup@{{ hostvars["maas-master"]["ansible_default_ipv4"]["address"] }}:/backup/maas-slave{{ item }}/ --exclude="*.sock"'
+    changed_when: false
+    when: '"maas-slave" in inventory_hostname'
+    become: true
+    with_items:
+      - /etc
+      - /var/lib

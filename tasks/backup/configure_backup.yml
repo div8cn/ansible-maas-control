@@ -1,0 +1,58 @@
+- name: Create backup user
+  user:
+    name: maasbackup
+    group: adm
+    shell: /bin/sh
+
+- name: Set SSH dir
+  file:
+    state: directory
+    name: /home/maasbackup/.ssh
+    owner: maasbackup
+    mode: 0700
+
+- name: Set public key
+  copy:
+    content: "{{ maas_backup_key.public }}"
+    dest: /home/maasbackup/.ssh/authorized_keys
+    owner: maasbackup
+    group: adm
+    mode: 0600
+
+- name: Set private key
+  copy:
+    content: "{{ maas_backup_key.private }}"
+    dest: /home/maasbackup/.ssh/id_rsa
+    owner: maasbackup
+    group: adm
+    mode: 0600
+
+- name: Install Ansible
+  include_role:
+    name: geerlingguy.ansible
+  when: "'maas-master' in inventory_hostname"
+
+- name: Install inventory file
+  template:
+    src: templates/maas-hosts.j2
+    dest: /home/maasbackup/maas-hosts
+    owner: maasbackup
+    group: adm
+  when: "'maas-master' in inventory_hostname"
+
+- name: Install backup playbook
+  copy:
+    src: files/backup-maas-cluster.yml
+    dest: /home/maasbackup/backup-maas-cluster.yml
+    owner: maasbackup
+    group: adm
+    mode: 0600
+  when: "'maas-master' in inventory_hostname"
+
+- name: Install restic
+  include_role:
+    name: ansible-restic
+  vars:
+    cron: true
+    restic_pre_command: 'su maasbackup -c "/usr/bin/ansible-playbook -i /home/maasbackup/maas-hosts /home/maasbackup/backup-maas-cluster.yml -b"'
+  when: "'maas-master' in inventory_hostname"

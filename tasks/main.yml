@@ -1,50 +1,65 @@
 ---
-- name: login to maas
+- name: Login to MAAS
   include: api/login.yml
+  when: "'maas-master' in inventory_hostname"
   tags:
     - login
 
-- name: set sshkeys
+- name: Set SSH keys
   include: sshkeys/sshkeys.yml
+  when: "'maas-master' in inventory_hostname"
   tags:
     - sshkeys
 
-- name: set config
+- name: Set MAAS config
   include: maas_config/maas_config.yml
+  when: "'maas-master' in inventory_hostname"
   tags:
     - config
 
-- name: set domains
+- name: Set domains
   include: domains/domains.yml
+  when: "'maas-master' in inventory_hostname"
   tags:
     - domains
 
-- name: set vlans and subnets
+- name: Set VLAN's and subnets
   include: subnets/subnets.yml
+  when: "'maas-master' in inventory_hostname"
   tags:
     - subnets
 
-- name: set commissioning scripts
+- name: Set commissioning scripts
   include: commissioning_script/create_scripts.yml
+  when: "'maas-master' in inventory_hostname"
   tags:
     - commissioning_script
 
-- name: set dhcpsnippets
+- name: Set DHCP snippets
   include: dhcp_snippets/dhcp_snippets.yml
+  when: "'maas-master' in inventory_hostname"
   tags:
     - snippets
 
-- name: set devices
+- name: Set devices
   include: device/devices.yml
+  when: "'maas-master' in inventory_hostname"
   tags:
     - devices
 
-- name: set machines
+- name: Set machines
   include: machine/machines.yml
+  when: "'maas-master' in inventory_hostname"
   tags:
     - machines
 
-- name: logout to maas
+- name: Logout of MAAS
   include: api/logout.yml
+  when: "'maas-master' in inventory_hostname"
   tags:
     - login
+
+- name: Configure backup of MAAS
+  include: backup/configure_backup.yml
+  tags:
+    - backup
