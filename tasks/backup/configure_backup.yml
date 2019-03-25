@@ -40,6 +40,36 @@
     group: adm
   when: "'maas-master' in inventory_hostname"
 
+- name: Add Ansible configuration with logging
+  copy:
+    src: files/ansible.cfg
+    dest: /home/maasbackup/ansible.cfg
+    owner: maasbackup
+    group: adm
+    mode: 0640
+  when: "'maas-master' in inventory_hostname"
+
+- name: Set Ansible log dir
+  file:
+    state: directory
+    name: /var/log/ansible
+    owner: maasbackup
+    group: adm
+    mode: 0775
+
+- name: Install logrotate
+  package:
+    name: logrotate
+    state: present
+  register: logrotate_install
+
+- name: Create logrotate config
+  copy:
+    src: files/logrotate_ansible
+    dest: /etc/logrotate.d/ansible
+    mode: '0644'
+  when: logrotate_install is succeeded
+
 - name: Install backup playbook
   copy:
     src: files/backup-maas-cluster.yml
