@@ -51,8 +51,3 @@
   with_items: "{{dhcp_snippets.subnets}}"
   tags:
     - snippets
-
-
-
-
-

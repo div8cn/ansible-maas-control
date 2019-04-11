@@ -1,5 +1,5 @@
 ---
-- name: MAAS | DHCP-SNIPPETS | create global snippet {{item.name}}
+- name: MAAS | DHCP-SNIPPETS | create subnet snippet {{item.name}}
   command: maas {{ maas_user }} dhcpsnippets create enabled="true" name={{item.name}} subnet={{item.subnet}} value=$DHCP_SNIPPET
   environment:
     DHCP_SNIPPET:  "{{ item.snippet }}"
