@@ -43,7 +43,7 @@
 - name: Add Ansible configuration with logging
   copy:
     src: files/ansible.cfg
-    dest: /home/maasbackup/ansible.cfg
+    dest: /home/maasbackup/.ansible.cfg
     owner: maasbackup
     group: adm
     mode: 0640
