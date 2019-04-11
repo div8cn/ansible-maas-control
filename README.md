@@ -8,14 +8,12 @@ Service).
 * Working MAAS server and SSH access to this server.
 * All vlans should be defined on the required interfaces of your
   rack controller(s). You cannot do this from the MAAS API.
+* For backup with restic to S3 a bucket with access and secret key should be
+  available.
 
 ## Limitations
 
-* Creation of seperate DNS records (A, CNAME etc) is not yet supported.
-* Breakdown of network and devices are not yet supported.
-* Currently the MAAS API does not allow to connect a fabric to an interface.
-  You have to do this by hand via the web interface at the moment. Vlans in MAAS
-  are defined on fabrics.
+* Creation of separate DNS records (A, CNAME etc) is not yet supported.
 
 ## Role Variables
 
@@ -120,7 +118,8 @@ commissioning_scripts:
 
 ## Dependencies
 
-* None
+* [ansible-maas](https://github.com/mrlesmithjr/ansible-maas)
+* [ansible-restic](https://github.com/naturalis/ansible-restic)
 
 ## Example Playbook
 
@@ -130,6 +129,18 @@ commissioning_scripts:
   roles:
     - role: naturalis.maas-control
 ```
+
+## Backup
+
+This role (optionally) configures backups with restic. You can skip backup
+configuration by using `--skip-tags backup`.
+
+When backup is configured, a [prebackup
+script](./files/backup-maas-cluster.yml) based on Ansible will be
+installed. This prebackup script runs from the `maas-master` and runs tasks on
+both the `maas-master` and `maas-slave` server. Ansible will be run with the
+`maasbackup` user on both machines. Logs of the prebackup script are stored on
+on `maas-master` in `/var/log/ansible/maasbackup.log`.
 
 ## License
 
