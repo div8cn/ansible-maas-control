@@ -5,8 +5,13 @@ Service).
 
 ## Requirements
 
-* Working MAAS server and SSH access to this server.
-* All vlans should be defined on the required interfaces of your
+* Working MAAS server and SSH access to this server. At Naturalis we use the
+  [ansible-maas-deploy](https://github.com/naturalis/ansible-maas-deploy)
+  role.
+* The rack controller ID for both the primary and secondary rack controller
+  (which is the last part of the URL of both machines on the Controller page)
+  should be added as variables (see below).
+* All VLAN's should be defined on the required interfaces of your
   rack controller(s). You cannot do this from the MAAS API.
 * For backup with restic to S3 a bucket with access and secret key should be
   available.
@@ -118,7 +123,6 @@ commissioning_scripts:
 
 ## Dependencies
 
-* [ansible-maas](https://github.com/mrlesmithjr/ansible-maas)
 * [ansible-restic](https://github.com/naturalis/ansible-restic)
 
 ## Example Playbook
