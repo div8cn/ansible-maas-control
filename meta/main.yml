@@ -7,5 +7,4 @@ galaxy_info:
   min_ansible_version: 2.4
 
   galaxy_tags: ['maas','hardware','dhcp','dns','datacenter','infrastructure']
-dependencies:
-  - ansible-restic
+dependencies: []

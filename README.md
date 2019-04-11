@@ -1,27 +1,24 @@
-Maas-Control
-=========
+# maas-control
 
-Do stuf with Maas (https://maas.io/). Ubuntu Metal as a Service.
+Ansible playbook to control and configure [MAAS](https://maas.io/) (Metal as a
+Service).
 
-Requirements
-------------
+## Requirements
 
-* Working Maas server and shell access to this server
+* Working MAAS server and SSH access to this server.
 * All vlans should be defined on the required interfaces of your
-  rack controller(s). You cannot do this from the maas api.
+  rack controller(s). You cannot do this from the MAAS API.
 
-Limitations
------------
+## Limitations
 
-* Machines are not yet supported
-* Creation of seperate dns records (A, CNAME etc) is not yet supported
-* Breakdown of network and devices are not yet supported
-* Currently the maas api does not allow to connect a fabric to an interface.
-  You have to do this by hand via the web interface at the moment. Vlans in Maas are
-	defined on fabrics.
+* Creation of seperate DNS records (A, CNAME etc) is not yet supported.
+* Breakdown of network and devices are not yet supported.
+* Currently the MAAS API does not allow to connect a fabric to an interface.
+  You have to do this by hand via the web interface at the moment. Vlans in MAAS
+  are defined on fabrics.
 
-Role Variables
---------------
+## Role Variables
+
 ```yaml
 # maas user
 maas_user: maas
@@ -51,12 +48,14 @@ default_maas_secondary_rack_controller_id: ""
 maas_managed_inventory_group: all
 # default type if network_interfaces are defined, can be device, machine or ignore
 default_maas_type: device
-# frabrics to create (api does not yet support attachting facbrics to interfaces)
+# fabrics to create (api does not yet support attachting facbrics to interfaces)
 fabrics:
   - name: 'fabric-2'
     interface: enp179s0f0
   - name: 'fabric-3'
     interface: enp179s0f1
+# default image
+default_machine_distro: 'bionic'
 
 vlans: {}
 # example vlan / dhcp configs
@@ -76,15 +75,54 @@ vlans: {}
 #     ip_address: <the ip address>
 #   - mac_address: <the mac address>
 #     ip_address: <the ip address>
+
+# Public SSH keys MAAS will be able to add to machines
+maas_public_keys:
+  - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDXGplrKtQ30nhhpkKECjb5WGLhPDwGEMI+xqGYYQZdc+/XO77gpF8s9FI8F40dC+n2dIlVQqVQ6AmDSec7ZeWljN9QrWFlf/tcEcItQ20WHNYxuMpewO8KwhLpQpxsGiRBC+t6cXKUpGImiMIZTdjou1iH2m40EFUEhhMpyqZblhXBSU8QaABne5WANM5LNeLMqDKgrEuwmtUAow54b4VfLH92WG4rH35XhvSYH9Ty9xBG1ks3Jg3WkueLmxiWtRq4mzeBos7MXeN8x4WOqmzieqK7IMI9taTZG2atEGSf8DRaDKsSMt9eVV+r1RfRgpokrRgxVHX0KTsLonH1i3+h david.heijkamp@naturalis.nl"
+
+# SSH key for maasbackup user
+maas_backup_key:
+  public: "ssh-rsa AAAAB3N..."
+  private: |
+   -----BEGIN RSA PRIVATE KEY-----
+   MIIEpQIBAAKCAQEAxJ1KXa1T+ihsgbbTM93RJHV1IuPen54NnTdnIKhSv9+kv5Nj
+   ...
+
+# Secrets and URL for backup to S3 with restic
+restic_aws_access_key: "AAAAAAAAAAAAAAAAAAAA"
+restic_aws_secret_key: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+restic_password: "zzzzzzzzzzzzzzzz"
+restic_aws_repo: "s3:https://s3.amazonaws.com/restic-repo"
+
+# Optional DHCP snippets, for example:
+dhcp_snippets:
+  global:
+    - name: Cumulus provision URL
+      snippet: |-
+        option www-server code 72 = ip-address;
+        option cumulus-provision-url code 239 = text;
+  subnets:
+    - name: ONIE installer
+      snippet: |-
+        option default-url = "http://10.225.0.10/onie-installer";
+        option cumulus-provision-url "http://10.225.0.10/ztp_oob.sh";
+        option www-server 10.225.0.10;
+      subnet: "10.225.0.0/16"
+  nodes: []
+
+# Optional commisioning scripts
+commissioning_scripts:
+  - name: Hello world
+    script: |
+      #!/bin/bash
+      echo "Hello world!"
 ```
 
-Dependencies
-------------
+## Dependencies
 
 * None
 
-Example Playbook
-----------------
+## Example Playbook
 
 ```
 - hosts: maas-master
@@ -93,12 +131,10 @@ Example Playbook
     - role: naturalis.maas-control
 ```
 
-License
--------
+## License
 
 Apache 2.0
 
-Author Information
-------------------
+## Author Information
 
 Atze de Vries - atze.devries@naturalis.nl
