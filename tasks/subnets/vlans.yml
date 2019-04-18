@@ -1,5 +1,6 @@
-- name: MAAS | VLANS | set some facts (1)
+- name: MAAS | VLANS | Set some facts (1)
   set_fact:
+    description: "{{ item.value.name }}"
     mtu: "{{ item.value.mtu | default(default_mtu) }}"
     subnet: "{{ item.value.subnet }}"
     vlan: "{{ item.key }}"
@@ -9,56 +10,57 @@
     dns_servers: "{{ item.value.dns_servers | default(default_dns)}}"
     dhcp_iprange_start_offset: "{{ item.value.dhcp_start_offset | default(default_maas_dhcp_start_offset ) }}"
     dhcp_iprange_number_of_addresses: "{{ item.value.dhcp_number_of_addresses | default(default_maas_dhcp_number_of_addresses ) }}"
-    gateway: "{{ item.value.gateway | default( item.value.subnet | ipaddr('10') | ipaddr('address')) }}"
+    gateway: "{{ item.value.gateway | default( item.value.subnet | ipaddr('1') | ipaddr('address')) }}"
     dhcp_primary_controller_id: "{{ item.value.maas_primary_rack_controller_id  | default(default_maas_primary_rack_controller_id) }}"
     dhcp_secondary_controller_id: "{{ item.value.maas_secondary_rack_controller_id  | default(default_maas_secondary_rack_controller_id) }}"
 
-- name: MAAS | VLANS | set some facts (2)
+- name: MAAS | VLANS | Set some facts (2)
   set_fact:
     dhcp_iprange_start: "{{ subnet | ipaddr(dhcp_iprange_start_offset | int) | ipaddr('address') }}"
     dhcp_iprange_end: "{{ subnet | ipaddr( dhcp_iprange_start_offset|int + dhcp_iprange_number_of_addresses|int ) | ipaddr('address') }}"
 
-- name: MAAS | VLANS | check if vlan exists
+- name: MAAS | VLANS | Check if VLAN {{ vlan }} exists
   command: maas {{ maas_user }} vlan read {{ fabric }} {{ vlan }}
   changed_when: false
   failed_when: maas_vlan.rc != 0 and maas_vlan.rc != 2
   register: maas_vlan
 
-- name: MAAS | VLANS | make sure vlan {{vlan }} exists
+- name: MAAS | VLANS | Make sure VLAN {{ vlan }} exists
   command: maas {{ maas_user }} vlans create {{ fabric }} name=vlan-{{vlan}} vid={{vlan}} mtu={{mtu}}
   when: maas_vlan.rc == 2 #and present
   register: maas_vlan_created
 
-- name: MAAS | VLANS | set vlan_id fact (try 1)
+- name: MAAS | VLANS | Set vlan_id fact (try 1)
   set_fact:
     vlan_id: "{{ (maas_vlan.stdout | from_json).id }}"
   when: maas_vlan.rc == 0
 
-- name: MAAS | VLANS | set vlan_id fact (try 2)
+- name: MAAS | VLANS | Set vlan_id fact (try 2)
   set_fact:
     vlan_id: "{{ (maas_vlan_created.stdout | from_json).id }}"
   when: maas_vlan.rc == 2
 
-- name: MAAS | VLANS | set fabric_id fact
+- name: MAAS | VLANS | Set fabric_id fact
   set_fact:
     fabric_id: "{{ (maas_fabrics.stdout | from_json | selectattr ('name','equalto', fabric) | map(attribute='id') | list)[0] }}"
 
-- name: MAAS | VLANS | check if subnet exists
+- name: MAAS | VLANS | Check if subnet {{ subnet }} exists
   command: maas {{ maas_user }} subnets read
   changed_when: false
   register: maas_subnet
 
-- name: MAAS | VLANS | set subnet facts (try 1)
+- name: MAAS | VLANS | Set subnet facts (try 1)
   set_fact:
     subnet_id: "{{ (maas_subnet.stdout | from_json | selectattr('cidr','equalto', subnet)|map(attribute='id')|list)[0] | default('-1') }}"
 
   # dit gaat nu fout omdat vlan al bestaat, moet check of info klopt.
   # eerst subnet/vlan slopen
   # fix ook peer van packages
-- name: MAAS | VLANS | make sure subnet exists
+- name: MAAS | VLANS | Make sure subnet {{ subnet }} exists
   command: >-
     maas {{ maas_user }}
       subnets create
+        description="{{description}}"
         cidr="{{subnet}}"
         vlan={{vlan_id}}
         dns_servers="{{dns_servers}}"
@@ -67,21 +69,21 @@
   when: subnet_id|int == -1
   register: maas_subnet_created
 
-- name: MAAS | VLANS | set subnet facts (try 2)
+- name: MAAS | VLANS | Set subnet facts (try 2)
   set_fact:
     subnet_id: "{{ (maas_subnet_created.stdout | from_json ).id }}"
   when: maas_subnet_created.changed
 
-- name: MAAS | VLANS | check if ip range exists
+- name: MAAS | VLANS | Check if IP range exists
   command: maas {{ maas_user }} ipranges read
   changed_when: false
   register: maas_iprange
 
-- name: MAAS | VLANS | get ip range id (try 1)
+- name: MAAS | VLANS | Get IP range id (try 1)
   set_fact:
     iprange_id: "{{ (maas_iprange.stdout | from_json | selectattr( 'comment','equalto', vlan )| map(attribute='id') | list)[0] | default('-1') }}"
 
-- name: MAAS | VLANS | make sure ip range exists
+- name: MAAS | VLANS | Make sure IP range exists
   command: >
       maas {{ maas_user }} ipranges create
       type=dynamic
@@ -91,18 +93,18 @@
   when: iprange_id|int == -1 and dhcp
   register: maas_iprange_created
 
-- name: MAAS | VLANS | get ip rangee id (try 2)
+- name: MAAS | VLANS | Get iprange id (try 2)
   set_fact:
     iprange_id: "{{ (maas_iprange_created.stdout | from_json).id }}"
   when: maas_iprange_created.changed
 
-- name: MAAS | VLANS | read iprange info
+- name: MAAS | VLANS | Read iprange info
   command: maas {{ maas_user }} iprange read {{ iprange_id }}
   changed_when: false
   register: maas_iprange_info
   when: dhcp
 
-- name: MAAS | VLANS | check if ipranges are changed
+- name: MAAS | VLANS | Check if ipranges are changed
   set_fact:
     maas_dhcp_start_changed: "{{ (maas_iprange_info.stdout | from_json).start_ip != dhcp_iprange_start}}"
     maas_dhcp_end_changed:  "{{(maas_iprange_info.stdout | from_json).end_ip != dhcp_iprange_end }}"
@@ -121,7 +123,8 @@
 
 - debug:
     msg: start {{ maas_dhcp_start_changed }} end {{ maas_dhcp_end_changed }}
-- name: MAAS | VLANS | update iprange when range is changed
+
+- name: MAAS | VLANS | Update iprange when range is changed
   command: >
       maas {{ maas_user }} iprange update {{ iprange_id }}
       type=dynamic
@@ -131,13 +134,13 @@
   when: >
     dhcp and ( maas_dhcp_start_changed or maas_dhcp_end_changed )
 
-- name: MAAS | VLANS | register dhcp status
+- name: MAAS | VLANS | Register dhcp status
   command: maas {{ maas_user }} vlan read {{ fabric }} {{ vlan }}
   changed_when: false
   register: maas_vlan_info
   when: maas_vlan.rc == 0
 
-- name: MAAS | VLANS | make sure dhcp is enabled (high available)
+- name: MAAS | VLANS | Make sure DHCP is enabled (high available)
   command: >
     maas {{ maas_user }} vlan update {{ fabric }} {{ vlan }} dhcp_on=True
     primary_rack={{dhcp_primary_controller_id}}
@@ -147,7 +150,7 @@
     and dhcp
     and dhcp_secondary_controller_id != false
 
-- name: MAAS | VLANS | make sure dhcp is enabled (single dhcp server)
+- name: MAAS | VLANS | Make sure DHCP is enabled (single dhcp server)
   command: >
     maas {{ maas_user }} vlan update {{ fabric }} {{ vlan }} dhcp_on=True
     primary_rack={{dhcp_primary_controller_id}}
@@ -157,9 +160,9 @@
     and not dhcp_secondary_controller_id
 
 
-# some breakdown statement (also all create statemens should have 'present')
+# some breakdown statement (also all create statements should have 'present')
 # 1 disable dhcp maas maas vlan update fabric vid dhcp_on=false
-# 2 disable range maas maas iprange delelte iprange
+# 2 disable range maas maas iprange delete iprange
 # 3 disable subnet maas maas subnet delete subnet_id
 
   #- name: MAAS | VLANS | make sure dhcp is disabled
