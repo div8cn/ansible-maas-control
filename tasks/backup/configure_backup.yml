@@ -81,7 +81,7 @@
 
 - name: Install restic
   include_role:
-    name: ansible-restic
+    name: restic
   vars:
     cron: true
     restic_pre_command: 'su maasbackup -c "/usr/bin/ansible-playbook -i /home/maasbackup/maas-hosts /home/maasbackup/backup-maas-cluster.yml -b"'

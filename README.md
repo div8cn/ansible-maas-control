@@ -123,7 +123,7 @@ commissioning_scripts:
 
 ## Dependencies
 
-* [ansible-restic](https://github.com/naturalis/ansible-restic)
+* [restic](https://github.com/naturalis/ansible-restic)
 
 ## Example Playbook
 
